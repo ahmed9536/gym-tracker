@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Gym Tracker</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#151d30;--panel2:#1d2940;--line:#2b3852;--muted:#9aa9c2;--text:#f4f7fb;--accent:#80e0b2;--danger:#ff7d7d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px system-ui,-apple-system,Segoe UI,sans-serif;padding-bottom:82px}
+header{position:sticky;top:0;background:#0b1020ed;backdrop-filter:blur(12px);z-index:3;padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+h1{font-size:19px;margin:0;letter-spacing:.08em}h2{font-size:21px;margin:8px 0 14px}h3{font-size:16px;margin:0 0 10px}
+main{max-width:720px;margin:auto;padding:18px}.muted{color:var(--muted);font-size:13px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+button,input,textarea,select{font:inherit}button{border:0;border-radius:12px;padding:12px 14px;background:var(--accent);color:#092016;font-weight:700;cursor:pointer}
+button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button.danger{background:#48252e;color:#ffd9df}button:disabled{opacity:.45}
+input,textarea,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d1527;color:var(--text);margin:6px 0 12px}
+textarea{min-height:66px;resize:vertical}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.row .fit{flex:0 0 auto}
+nav{position:fixed;bottom:0;left:0;right:0;background:#111a2bed;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:9px 5px calc(9px + env(safe-area-inset-bottom));z-index:5}
+nav button{background:transparent;color:var(--muted);padding:8px 12px;font-size:12px}nav button.active{color:var(--accent)}
+.statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{background:var(--panel2);padding:12px;border-radius:12px}.stat b{display:block;font-size:22px}
+.setrow{display:grid;grid-template-columns:42px 1fr 1fr 1fr;gap:7px;align-items:center;border-top:1px solid var(--line);padding:9px 0}
+.setrow input{margin:0;padding:9px 6px;text-align:center;min-width:0}.sethead{display:grid;grid-template-columns:42px 1fr 1fr 1fr;gap:7px;color:var(--muted);font-size:11px;padding:8px 0}
+.timer{font-size:38px;font-weight:750;text-align:center;font-variant-numeric:tabular-nums;margin:12px 0}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:4px 9px;color:var(--muted);font-size:12px}
+.hidden{display:none!important}.exercise{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}.right{text-align:right}.empty{text-align:center;padding:32px 12px;color:var(--muted)}
+small{color:var(--muted)}.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#e6fff1;color:#092016;padding:10px 16px;border-radius:99px;z-index:9;display:none}
+</style>
+</head>
+<body>
+<header><h1>GYM TRACKER</h1><span class="pill">OFFLINE</span></header>
+<main>
+<section id="home">
+  <div class="card">
+    <div class="muted">YOUR TRAINING LOG</div><h2>Train. Record. Improve.</h2>
+    <div class="statgrid"><div class="stat"><small>Workouts</small><b id="workoutCount">0</b></div><div class="stat"><small>Exercises logged</small><b id="exerciseCount">0</b></div></div>
+    <button style="width:100%;margin-top:14px" onclick="startWorkout()">＋ Start New Workout</button>
+  </div>
+  <h3>Recent Workouts</h3><div id="recent"></div>
+</section>
+<section id="session" class="hidden">
+  <div class="row"><div><div class="muted">CURRENT WORKOUT</div><h2 id="sessionTitle">Workout</h2></div><button class="secondary fit" onclick="finishWorkout()">Finish</button></div>
+  <label class="muted" for="workoutName">Workout name</label><input id="workoutName" placeholder="e.g. Chest & Back">
+  <div class="card">
+    <h3>Add Exercise</h3>
+    <div class="row"><input id="exerciseName" placeholder="Exercise name"><button class="fit" onclick="addExercise()">Add</button></div>
+    <small>Enter any exercise name. Add as many as you need.</small>
+  </div>
+  <div id="exerciseList"></div>
+</section>
+<section id="history" class="hidden"><h2>Workout History</h2><div id="historyList"></div></section>
+<section id="progress" class="hidden"><h2>Progress</h2><div id="progressList"></div></section>
+<section id="backup" class="hidden">
+  <h2>Backup & Data</h2>
+  <div class="card"><h3>Export your data</h3><p class="muted">Download a JSON backup. Keep it somewhere safe.</p><button onclick="exportData()">Export Backup</button></div>
+  <div class="card"><h3>Import backup</h3><p class="muted">Importing replaces the data currently stored on this device.</p><input type="file" id="importFile" accept=".json,application/json"><button class="secondary" onclick="importData()">Import Backup</button></div>
+  <div class="card"><h3>Storage</h3><p class="muted">Your workouts are saved in this browser on this device. Clearing browser data may erase them, so export backups regularly.</p><button class="danger" onclick="clearAll()">Delete All Data</button></div>
+</section>
+</main>
+<nav>
+<button data-page="home" class="active" onclick="showPage('home')">⌂<br>Home</button>
+<button data-page="history" onclick="showPage('history')">▤<br>History</button>
+<button data-page="progress" onclick="showPage('progress')">↗<br>Progress</button>
+<button data-page="backup" onclick="showPage('backup')">⇧<br>Backup</button>
+</nav>
+<div class="toast" id="toast"></div>
+<script>
+const KEY='gym-tracker-v1';
+let data=load(), currentId=null, tickHandle=null;
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{workouts:[]}}catch(e){return {workouts:[]}}}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));renderHome()}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function toast(s){let t=document.getElementById('toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',1800)}
+function showPage(p){document.querySelectorAll('main>section').forEach(x=>x.classList.add('hidden'));document.getElementById(p).classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===p));if(p==='home')renderHome();if(p==='history')renderHistory();if(p==='progress')renderProgress()}
+function activeWorkout(){return data.workouts.find(w=>w.id===currentId)}
+function startWorkout(){
+ let w={id:uid(),name:'New Workout',startedAt:Date.now(),endedAt:null,exercises:[]};
+ data.workouts.unshift(w);currentId=w.id;save();openSession();
+}
+function openSession(){showPage('session');let w=activeWorkout();if(!w)return;document.getElementById('workoutName').value=w.name;document.getElementById('sessionTitle').textContent=w.name;renderExercises();startTicker()}
+function startTicker(){if(tickHandle)clearInterval(tickHandle);tickHandle=setInterval(()=>{document.querySelectorAll('[data-timer]').forEach(el=>{let w=activeWorkout(),e=w?.exercises.find(x=>x.id===el.dataset.exercise),s=e?.sets.find(x=>x.id===el.dataset.set);if(s?.startedAt&&!s.stoppedAt)el.textContent=fmt((Date.now()-s.startedAt)/1000)})},250)}
+function fmt(sec){sec=Math.max(0,Math.floor(sec));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')}
+document.getElementById('workoutName').addEventListener('input',e=>{let w=activeWorkout();if(w){w.name=e.target.value||'Workout';document.getElementById('sessionTitle').textContent=w.name;save()}});
+function addExercise(){let n=document.getElementById('exerciseName').value.trim();if(!n){toast('Enter an exercise name');return}let w=activeWorkout();if(!w)return;w.exercises.push({id:uid(),name:n,sets:[]});document.getElementById('exerciseName').value='';save();renderExercises()}
+function addSet(eid){let e=activeWorkout().exercises.find(x=>x.id===eid);e.sets.push({id:uid(),reps:'',weight:'',seconds:null,startedAt:null,stoppedAt:null,notes:''});save();renderExercises()}
+function startSet(eid,sid){let s=findSet(eid,sid);if(!s)return;if(s.startedAt&&!s.stoppedAt)return;s.startedAt=Date.now();s.stoppedAt=null;save();renderExercises()}
+function stopSet(eid,sid){let s=findSet(eid,sid);if(!s||!s.startedAt||s.stoppedAt)return;s.stoppedAt=Date.now();s.seconds=Math.floor((s.stoppedAt-s.startedAt)/1000);save();renderExercises();toast('Set time recorded')}
+function findSet(eid,sid){let e=activeWorkout()?.exercises.find(x=>x.id===eid);return e?.sets.find(x=>x.id===sid)}
+function updateSet(eid,sid,field,value){let s=findSet(eid,sid);if(s){s[field]=value;save()}}
+function renderExercises(){let w=activeWorkout();let root=document.getElementById('exerciseList');if(!w)return;root.innerHTML=w.exercises.length?'':'<div class="empty">No exercises yet. Add your first exercise above.</div>';
+ w.exercises.forEach((e,idx)=>{let d=document.createElement('div');d.className='card';d.innerHTML=`<div class="row"><div><span class="pill">EXERCISE ${idx+1}</span><h3 style="margin-top:8px">${esc(e.name)}</h3></div><button class="danger fit" onclick="removeExercise('${e.id}')">×</button></div><div class="sethead"><span>SET</span><span>REPS</span><span>KG</span><span>TIME</span></div><div id="sets-${e.id}"></div><button class="secondary" style="width:100%;margin-top:10px" onclick="addSet('${e.id}')">＋ Add Set</button>`;root.appendChild(d);
+ let sr=d.querySelector('#sets-'+e.id);e.sets.forEach((s,i)=>{let row=document.createElement('div');row.innerHTML=`<div class="setrow"><b>${i+1}</b><input type="number" min="0" placeholder="Reps" value="${esc(s.reps)}" onchange="updateSet('${e.id}','${s.id}','reps',this.value)"><input type="number" min="0" step="0.5" placeholder="KG" value="${esc(s.weight)}" onchange="updateSet('${e.id}','${s.id}','weight',this.value)"><div class="right"><b data-timer data-exercise="${e.id}" data-set="${s.id}">${s.startedAt?(s.stoppedAt?fmt(s.seconds):fmt((Date.now()-s.startedAt)/1000)):'--:--'}</b></div></div><div class="row" style="margin:6px 0 10px"><button class="${s.startedAt&&!s.stoppedAt?'secondary':''}" onclick="${s.startedAt&&!s.stoppedAt?`stopSet('${e.id}','${s.id}')`:`startSet('${e.id}','${s.id}')`}">${s.startedAt&&!s.stoppedAt?'Stop Timer':s.stoppedAt?'Restart Timer':'Start Timer'}</button><button class="secondary" onclick="removeSet('${e.id}','${s.id}')">Remove Set</button></div><label class="muted">Notes (required)</label><textarea placeholder="How did this set feel? Any difficulty, pain, or muscle failure?" onchange="updateSet('${e.id}','${s.id}','notes',this.value)">${esc(s.notes)}</textarea>`;sr.appendChild(row)})})
+}
+function removeExercise(id){let w=activeWorkout();w.exercises=w.exercises.filter(e=>e.id!==id);save();renderExercises()}
+function removeSet(eid,sid){let e=activeWorkout().exercises.find(x=>x.id===eid);e.sets=e.sets.filter(s=>s.id!==sid);save();renderExercises()}
+function finishWorkout(){let w=activeWorkout();if(!w)return;let incomplete=w.exercises.flatMap(e=>e.sets).some(s=>!s.notes.trim());if(incomplete){toast('Add notes to every set before finishing');return}if(w.exercises.some(e=>e.sets.some(s=>s.startedAt&&!s.stoppedAt))){toast('Stop all running timers first');return}w.endedAt=Date.now();currentId=null;save();showPage('history');toast('Workout saved')}
+function renderHome(){document.getElementById('workoutCount').textContent=data.workouts.length;document.getElementById('exerciseCount').textContent=data.workouts.reduce((n,w)=>n+w.exercises.length,0);let r=document.getElementById('recent');r.innerHTML='';if(!data.workouts.length){r.innerHTML='<div class="empty">Your workout history will appear here.</div>';return}data.workouts.slice(0,4).forEach(w=>{let b=document.createElement('div');b.className='card';b.innerHTML=`<div class="row"><div><b>${esc(w.name)}</b><div class="muted">${new Date(w.startedAt).toLocaleString()} · ${w.exercises.length} exercises</div></div><button class="secondary fit" onclick="viewWorkout('${w.id}')">View</button></div>`;r.appendChild(b)})}
+function renderHistory(){let r=document.getElementById('historyList');r.innerHTML='';if(!data.workouts.length){r.innerHTML='<div class="empty">No workouts recorded yet.</div>';return}data.workouts.forEach(w=>{let c=document.createElement('div');c.className='card';c.innerHTML=`<b>${esc(w.name)}</b><div class="muted">${new Date(w.startedAt).toLocaleString()}</div><p class="muted">${w.exercises.length} exercises · ${w.exercises.reduce((n,e)=>n+e.sets.length,0)} sets</p><button class="secondary" onclick="viewWorkout('${w.id}')">View details</button> <button class="danger" onclick="deleteWorkout('${w.id}')">Delete</button>`;r.appendChild(c)})}
+function viewWorkout(id){let w=data.workouts.find(x=>x.id===id);if(!w)return;let lines=w.exercises.map(e=>`<div class="exercise"><b>${esc(e.name)}</b>${e.sets.map((s,i)=>`<p class="muted">Set ${i+1}: ${s.reps||'—'} reps · ${s.weight||'—'} kg · ${s.seconds==null?'Not timed':fmt(s.seconds)}<br>Notes: ${esc(s.notes||'—')}</p>`).join('')}</div>`).join('');let win=window.open('','_blank');if(!win){alert(w.name+'\n'+w.exercises.map(e=>e.name).join(', '));return}win.document.write(`<meta name="viewport" content="width=device-width"><title>${esc(w.name)}</title><body style="font:16px system-ui;background:#0b1020;color:white;padding:20px"><h2>${esc(w.name)}</h2><p>${new Date(w.startedAt).toLocaleString()}</p>${lines}</body>`)}
+function deleteWorkout(id){if(!confirm('Delete this workout?'))return;data.workouts=data.workouts.filter(w=>w.id!==id);save();renderHistory()}
+function renderProgress(){let r=document.getElementById('progressList');let map={};data.workouts.forEach(w=>w.exercises.forEach(e=>e.sets.forEach(s=>{let wt=Number(s.weight);if(Number.isFinite(wt)&&wt>0){map[e.name]=Math.max(map[e.name]||0,wt)}})));let entries=Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0]));r.innerHTML=entries.length?'':'<div class="empty">Log weights to see your progress here.</div>';entries.forEach(([n,v])=>{let d=document.createElement('div');d.className='card';d.innerHTML=`<b>${esc(n)}</b><div class="muted">Best recorded weight</div><h2>${v} kg</h2>`;r.appendChild(d)})}
+function exportData(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gym-tracker-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)}
+function importData(){let f=document.getElementById('importFile').files[0];if(!f){toast('Choose a backup file first');return}let rd=new FileReader();rd.onload=()=>{try{let x=JSON.parse(rd.result);if(!Array.isArray(x.workouts))throw Error();if(!confirm('Replace all current data with this backup?'))return;data=x;save();toast('Backup imported');showPage('home')}catch(e){alert('Invalid backup file')}};rd.readAsText(f)}
+function clearAll(){if(!confirm('Permanently delete all workout data? Export a backup first if needed.'))return;data={workouts:[]};currentId=null;save();showPage('home')}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+renderHome();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body></html>
